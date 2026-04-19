@@ -1,0 +1,46 @@
+# ── Dependencies ──
+node_modules/
+
+# ── Build Output ──
+dist/
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# ── Environment Variables (NEVER commit) ──
+.env
+.env.local
+.env.production
+.env.*.local
+
+# ── WhatsApp Auth State (NEVER commit — contains session keys) ──
+auth_state/
+
+# ── IDE & OS ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ──
+*.log
+npm-debug.log*
+yarn-debug.log*
+pino-pretty.log
+
+# ── Runtime Data ──
+*.pid
+*.seed
+*.pid.lock
+
+# ── Coverage & Testing ──
+coverage/
+.nyc_output/
+
+# ── Misc ──
+*.tgz
+.cache/

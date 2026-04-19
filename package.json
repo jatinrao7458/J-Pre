@@ -1,0 +1,43 @@
+{
+  "name": "jpre-bot",
+  "version": "1.0.0",
+  "description": "J-pre — WhatsApp Coach, Assistant & Accountability Chatbot",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "whatsapp",
+    "chatbot",
+    "productivity",
+    "coach"
+  ],
+  "author": "Jatin",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/cheerio": "^0.22.35",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@octokit/rest": "^22.0.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "agenda": "^6.2.4",
+    "axios": "^1.15.1",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "mongoose": "^9.4.1",
+    "pino": "^10.3.1",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
