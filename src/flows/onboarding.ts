@@ -1,5 +1,6 @@
 import { User, IUser, Habit } from '../db/index.js';
 import { sendText } from '../whatsapp/sender.js';
+import { scheduleUserDailyJobs } from '../scheduler/index.js';
 
 /**
  * 8-Step Onboarding Flow
@@ -175,6 +176,18 @@ export async function handleOnboardingStep(
           `Format it however you want — I'll figure out the tasks, times, and priorities.\n\n` +
           `_Tip: Type "help" anytime to see what I can do._`
       );
+
+      // Schedule recurring daily jobs for this user
+      const finalUser = await User.findById(user._id);
+      if (finalUser) {
+        await scheduleUserDailyJobs(
+          finalUser._id.toString(),
+          phone,
+          finalUser.activeHoursStart,
+          finalUser.activeHoursEnd
+        );
+      }
+
       console.log(`✅ Onboarding complete for ${name} (${phone})`);
       break;
     }

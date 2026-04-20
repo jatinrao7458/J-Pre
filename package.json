@@ -27,6 +27,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@agendajs/mongo-backend": "^4.0.1",
     "@google/generative-ai": "^0.24.1",
     "@octokit/rest": "^22.0.1",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",

@@ -1,6 +1,7 @@
 import { User, IUser, Conversation } from '../db/index.js';
 import { classifyIntent, askGemini } from '../ai/index.js';
 import { handleOnboardingStep } from '../flows/onboarding.js';
+import { handleDailyPlan, handleTaskUpdate, handleDebriefReason, handleMoodCheck, handleHabitUpdate, handleWhatNow } from '../commands/index.js';
 import { sendText } from '../whatsapp/sender.js';
 import { Content } from '@google/generative-ai';
 
@@ -18,11 +19,12 @@ export async function routeMessage(phone: string, text: string, sock: any): Prom
     let user = await User.findOne({ phone });
 
     if (!user) {
-      // First time user — create record and start onboarding
       user = await User.create({ phone });
       await Conversation.create({ userId: user._id, messages: [] });
       console.log(`👤 New user registered: ${phone}`);
     }
+
+    const userId = user._id.toString();
 
     // ── 2. Log incoming message ──
     await Conversation.findOneAndUpdate(
@@ -50,39 +52,36 @@ export async function routeMessage(phone: string, text: string, sock: any): Prom
     // Special mid-flow states
     switch (state) {
       case 'awaiting_debrief_reason':
-        // TODO: Phase 3 — handle debrief response
-        await sendText(sock, phone, '📝 Got it — logging your reason. (Debrief handler coming soon!)');
-        await User.updateOne({ _id: user._id }, { conversationState: 'idle' });
+        await handleDebriefReason(userId, phone, text, sock);
         return;
 
       case 'awaiting_post_approval':
-        // TODO: Phase 4 — handle post approval/rejection
+        // TODO: Phase 4
         await sendText(sock, phone, '📣 Post approval handler coming in Phase 4!');
         await User.updateOne({ _id: user._id }, { conversationState: 'idle' });
         return;
 
       case 'awaiting_reschedule_confirm':
-        // TODO: Phase 3 — handle reschedule confirmation
-        await sendText(sock, phone, '🔄 Reschedule handler coming in Phase 3!');
+        // TODO: Phase 4
+        await sendText(sock, phone, '🔄 Reschedule confirmation coming soon!');
         await User.updateOne({ _id: user._id }, { conversationState: 'idle' });
         return;
 
       case 'awaiting_plan_confirm':
-        // TODO: Phase 2 continued — handle plan confirmation
-        await sendText(sock, phone, '📋 Plan confirmation handler coming soon!');
+        // TODO: Phase 4
+        await sendText(sock, phone, '📋 Plan confirmation coming soon!');
         await User.updateOne({ _id: user._id }, { conversationState: 'idle' });
         return;
 
       case 'awaiting_draft_approval':
-        // TODO: Phase 4 — handle draft approval
-        await sendText(sock, phone, '✍️ Draft approval handler coming in Phase 4!');
+        // TODO: Phase 4
+        await sendText(sock, phone, '✍️ Draft approval coming in Phase 4!');
         await User.updateOne({ _id: user._id }, { conversationState: 'idle' });
         return;
     }
 
     // ── 4. Idle state — classify intent and dispatch ──
     if (!user.onboardingComplete) {
-      // User exists but hasn't finished onboarding — restart it
       await User.updateOne({ _id: user._id }, { conversationState: 'onboarding_step_1' });
       await handleOnboardingStep(user, text, sock);
       return;
@@ -91,25 +90,29 @@ export async function routeMessage(phone: string, text: string, sock: any): Prom
     const intent = await classifyIntent(text);
     console.log(`🎯 Intent classified: ${intent} (from: ${phone})`);
 
-    // Dispatch to command handlers (stubs for now — built in Phase 3+)
+    // Dispatch to command handlers
     switch (intent) {
       case 'daily_plan':
-        // TODO: Phase 3 — parse plan into tasks
-        await sendText(sock, phone, '📋 Daily plan parser coming in Phase 3! For now, I heard your plan.');
+        await handleDailyPlan(userId, phone, text, sock);
         break;
 
       case 'task_update':
-        await sendText(sock, phone, '✅ Task update handler coming in Phase 3!');
+        await handleTaskUpdate(userId, phone, text, sock);
         break;
 
       case 'mood_check':
-        await sendText(sock, phone, '😊 Mood tracking coming in Phase 3!');
+        await handleMoodCheck(userId, phone, text, sock);
         break;
 
       case 'what_now':
-        await sendText(sock, phone, '🎯 Smart recommendations coming in Phase 3!');
+        await handleWhatNow(userId, phone, sock);
         break;
 
+      case 'habit_update':
+        await handleHabitUpdate(userId, phone, text, sock);
+        break;
+
+      // ── Phase 4+ stubs ──
       case 'research_request':
         await sendText(sock, phone, '🔍 Web research coming in Phase 4.5!');
         break;
@@ -138,12 +141,8 @@ export async function routeMessage(phone: string, text: string, sock: any): Prom
         await sendText(sock, phone, '📣 Accountability posting coming in Phase 4!');
         break;
 
-      case 'habit_update':
-        await sendText(sock, phone, '🏋️ Habit tracker coming in Phase 3!');
-        break;
-
       case 'monthly_goal':
-        await sendText(sock, phone, '🗺️ Monthly goals coming in Phase 3!');
+        await sendText(sock, phone, '🗺️ Monthly goals coming in Phase 4!');
         break;
 
       case 'screen_time':
@@ -152,7 +151,6 @@ export async function routeMessage(phone: string, text: string, sock: any): Prom
 
       case 'general_chat':
       default: {
-        // Fall through to Gemini for general conversation
         const history = await getConversationHistory(user._id);
         const reply = await askGemini(text, history);
         await sendText(sock, phone, reply);
@@ -174,7 +172,6 @@ async function getConversationHistory(userId: any): Promise<Content[]> {
   const convo = await Conversation.findOne({ userId });
   if (!convo || convo.messages.length === 0) return [];
 
-  // Take last 20 messages for context window
   const recent = convo.messages.slice(-20);
 
   return recent.map((msg) => ({
