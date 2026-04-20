@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import { connectDB } from './db/index.js';
 import { initWhatsApp } from './whatsapp/connection.js';
 import { setupMessageListener } from './whatsapp/listener.js';
 
@@ -31,6 +32,9 @@ async function main() {
       console.log(`🌐 Express server running on port ${PORT}`);
       console.log(`   Health check: http://localhost:${PORT}/health`);
     });
+
+    // Connect to MongoDB
+    await connectDB();
 
     // Connect WhatsApp
     const sock = await initWhatsApp();

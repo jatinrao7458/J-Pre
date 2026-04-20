@@ -1,9 +1,9 @@
-import { WASocket, proto, WAMessage, MessageUpsertType } from '@whiskeysockets/baileys';
+import { WASocket, WAMessage } from '@whiskeysockets/baileys';
 import { handleIncomingMessage } from '../handler.js';
 
 /**
  * Set up the inbound message listener on the Baileys socket.
- * 
+ *
  * Listens for `messages.upsert` events, extracts the message metadata,
  * and routes it to the main message handler.
  */
@@ -27,10 +27,16 @@ export function setupMessageListener(sock: WASocket): void {
         const parsed = extractMessageData(msg);
         if (!parsed) continue;
 
-        console.log(`📩 Message from ${parsed.senderJid}: ${parsed.text || '[media]'}`);
+        console.log(`📩 Message from ${parsed.phone}: ${parsed.text || '[media]'}`);
 
-        // Route to the main handler
-        await handleIncomingMessage(parsed);
+        // Route to the main handler — pass sock so it can reply
+        await handleIncomingMessage(sock, parsed.phone, {
+          type: parsed.type,
+          text: parsed.text || undefined,
+          caption: parsed.caption || undefined,
+          imageBuffer: undefined, // Downloaded lazily in Phase 4
+          audioBuffer: undefined,
+        });
       } catch (error) {
         console.error('❌ Error processing message:', error);
       }
@@ -40,21 +46,14 @@ export function setupMessageListener(sock: WASocket): void {
   console.log('👂 Message listener active — listening for incoming messages...');
 }
 
-// ── Message Data Types ──
+// ── Parsed Message Shape ──
 
-export interface ParsedMessage {
-  /** The sender's WhatsApp JID (e.g., "919876543210@s.whatsapp.net") */
-  senderJid: string;
-  /** The text content of the message (null if media-only) */
+interface ParsedMessage {
+  phone: string;
+  type: 'text' | 'image' | 'audio' | 'unknown';
   text: string | null;
-  /** Whether the message contains an image */
-  hasImage: boolean;
-  /** Whether the message contains an audio/voice note */
-  hasAudio: boolean;
-  /** The raw Baileys message object (for downloading media later) */
+  caption: string | null;
   rawMessage: WAMessage;
-  /** Message timestamp */
-  timestamp: number;
 }
 
 /**
@@ -67,26 +66,29 @@ function extractMessageData(msg: WAMessage): ParsedMessage | null {
   const messageContent = msg.message;
   if (!messageContent) return null;
 
-  // Extract text from various message types
+  // Determine message type and extract content
+  let type: ParsedMessage['type'] = 'unknown';
   let text: string | null = null;
+  let caption: string | null = null;
+
   if (messageContent.conversation) {
+    type = 'text';
     text = messageContent.conversation;
   } else if (messageContent.extendedTextMessage?.text) {
+    type = 'text';
     text = messageContent.extendedTextMessage.text;
-  } else if (messageContent.imageMessage?.caption) {
-    text = messageContent.imageMessage.caption;
+  } else if (messageContent.imageMessage) {
+    type = 'image';
+    caption = messageContent.imageMessage.caption || null;
+  } else if (messageContent.audioMessage) {
+    type = 'audio';
   }
 
-  // Check for media
-  const hasImage = !!(messageContent.imageMessage);
-  const hasAudio = !!(messageContent.audioMessage);
-
   return {
-    senderJid,
+    phone: senderJid,
+    type,
     text,
-    hasImage,
-    hasAudio,
+    caption,
     rawMessage: msg,
-    timestamp: msg.messageTimestamp as number || Math.floor(Date.now() / 1000),
   };
 }

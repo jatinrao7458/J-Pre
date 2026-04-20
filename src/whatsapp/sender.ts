@@ -1,12 +1,9 @@
-import { WASocket, AnyMessageContent } from '@whiskeysockets/baileys';
-import { getSocket } from './connection.js';
-import { Readable } from 'stream';
+import { WASocket } from '@whiskeysockets/baileys';
 
 /**
  * Send a text message to a WhatsApp JID.
  */
-export async function sendText(jid: string, text: string): Promise<void> {
-  const sock = getSocket();
+export async function sendText(sock: WASocket, jid: string, text: string): Promise<void> {
   if (!sock) {
     console.error('❌ Cannot send message: WhatsApp not connected');
     return;
@@ -32,11 +29,11 @@ export async function sendText(jid: string, text: string): Promise<void> {
  * Send an image with an optional caption to a WhatsApp JID.
  */
 export async function sendImage(
+  sock: WASocket,
   jid: string,
   imageBuffer: Buffer,
   caption?: string
 ): Promise<void> {
-  const sock = getSocket();
   if (!sock) {
     console.error('❌ Cannot send image: WhatsApp not connected');
     return;
@@ -56,12 +53,12 @@ export async function sendImage(
  * Send a document/file to a WhatsApp JID.
  */
 export async function sendDocument(
+  sock: WASocket,
   jid: string,
   fileBuffer: Buffer,
   filename: string,
   mimetype: string = 'application/octet-stream'
 ): Promise<void> {
-  const sock = getSocket();
   if (!sock) {
     console.error('❌ Cannot send document: WhatsApp not connected');
     return;

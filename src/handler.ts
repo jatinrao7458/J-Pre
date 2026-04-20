@@ -1,34 +1,40 @@
-import { ParsedMessage } from './whatsapp/listener.js';
 import { sendText } from './whatsapp/sender.js';
+import { routeMessage } from './router/index.js';
 
 /**
- * Main message handler — the central routing point for all incoming messages.
- * 
- * Phase 1: Simple echo for testing.
- * Phase 2+: This will check conversationState → route to state machine or intent classifier.
+ * Main message handler — entry point from whatsapp/listener.ts
+ *
+ * Routes all incoming messages through the state machine.
+ * Image/audio handling will be added in later phases.
  */
-export async function handleIncomingMessage(msg: ParsedMessage): Promise<void> {
-  const { senderJid, text, hasImage, hasAudio } = msg;
+export async function handleIncomingMessage(
+  sock: any,
+  phone: string,
+  messageContent: { type: string; text?: string; caption?: string; imageBuffer?: Buffer; audioBuffer?: Buffer }
+): Promise<void> {
+  const { type, text, caption, imageBuffer } = messageContent;
 
-  // ── Phase 1: Echo Test ──
-  // Simply echo back whatever text is received, to verify two-way messaging works.
-  // This will be replaced by the full state machine router in Phase 2.
+  switch (type) {
+    case 'text': {
+      if (!text) return;
+      await routeMessage(phone, text, sock);
+      break;
+    }
 
-  if (text) {
-    const echoResponse = `🤖 J-pre received: "${text}"\n\n(Echo mode — full intelligence coming in Phase 2!)`;
-    await sendText(senderJid, echoResponse);
-    return;
+    case 'image': {
+      // TODO: Phase 4 — send image to Gemini Vision for screen time parsing
+      const prompt = caption || 'What do you see in this image?';
+      await sendText(sock, phone, '📷 Image analysis coming in Phase 4! For now, I got your image.');
+      break;
+    }
+
+    case 'audio': {
+      // TODO: Phase 4 — transcribe audio via Gemini
+      await sendText(sock, phone, '🎤 Audio transcription coming in Phase 4!');
+      break;
+    }
+
+    default:
+      await sendText(sock, phone, 'I can handle text, images, and audio — send me something!');
   }
-
-  if (hasImage) {
-    await sendText(senderJid, '🖼️ Got your image! (Image processing coming in Phase 2)');
-    return;
-  }
-
-  if (hasAudio) {
-    await sendText(senderJid, '🎤 Got your voice note! (Voice processing coming in Phase 2)');
-    return;
-  }
-
-  await sendText(senderJid, '🤔 Received something, but I couldn\'t parse it. Try sending text!');
 }
