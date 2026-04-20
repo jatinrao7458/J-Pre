@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import { connectDB } from './db/index.js';
+import { initScheduler } from './scheduler/index.js';
 import { initWhatsApp } from './whatsapp/connection.js';
 import { setupMessageListener } from './whatsapp/listener.js';
 
@@ -35,6 +36,9 @@ async function main() {
 
     // Connect to MongoDB
     await connectDB();
+
+    // Start Agenda scheduler (MongoDB-backed)
+    await initScheduler();
 
     // Connect WhatsApp
     const sock = await initWhatsApp();
